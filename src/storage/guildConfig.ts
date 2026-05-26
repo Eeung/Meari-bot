@@ -17,7 +17,7 @@ const DEFAULT_CONFIG: GuildConfig = {
 
 const filePath = path.join(process.cwd(), 'data', 'guilds.json');
 
-export class ServerConfigManager {
+export class GuildConfigManager {
 
   private static readFile(): Record<string, GuildConfig> {
     if (!fs.existsSync(filePath)) {

@@ -1,9 +1,11 @@
 import { AudioReceiveStream, EndBehaviorType, VoiceReceiver } from '@discordjs/voice';
 import type { AudioChunk } from './AudioChunk.js';
 import type { Guild } from 'discord.js';
-import { ServerConfigManager } from '@/storage/guildConfig.js';
+import { GuildConfigManager } from '@/storage/guildConfig.js';
+import { GlobalVar } from '@/globalVar.js';
+import Denque from 'denque';
 
-type UserBuffers = Map<string, AudioChunk[]>;
+type UserBuffers = Map<string, Denque<AudioChunk>>;
 
 export class VoiceReceiverManager {
   // 서버ID -> 유저ID -> 오디오 청크 배열
@@ -14,7 +16,6 @@ export class VoiceReceiverManager {
   private static streamMap: Map<string, Set<AudioReceiveStream>>  = new Map();
   // 서버ID -> 이벤트 핸들러: speaking 이벤트 리스너 저장
   private static speakingListeners: Map<string, (...args: any[]) => void> = new Map();
-  private static cleanupInterval: NodeJS.Timeout | null = null;
 
   static async startListening(receiver: VoiceReceiver, guild: Guild) {
     if (this.speakingListeners.has(guild.id)) return;
@@ -32,19 +33,14 @@ export class VoiceReceiverManager {
     this.speakingListeners.set(guild.id, handler);
 
     receiver.speaking.on('start', handler);
-    console.log("말 시작")
+    console.log("말 시작");
 
-    if(this.cleanupInterval) return;
-    this.cleanupInterval = setInterval(() => {
-      this.cleanup();
-    }, 1000);
-
-    const me = await guild.members.fetchMe();
+    const me = await GlobalVar.getMe(guild);
     await me.setNickname('🟡 메아리');
   }
 
   static async stopListening(receiver: VoiceReceiver, guild: Guild) {
-    const me = await guild.members.fetchMe();
+    const me = await GlobalVar.getMe(guild);
     await me.setNickname('⚪ 메아리');
     const handler = this.speakingListeners.get(guild.id);
     if (handler)
@@ -62,11 +58,6 @@ export class VoiceReceiverManager {
     this.streamMap.delete(guild.id);
     this.activeStreams.delete(guild.id);
     this.buffers.delete(guild.id);
-
-    if (this.speakingListeners.size === 0 && this.cleanupInterval) {
-      clearInterval(this.cleanupInterval);
-      this.cleanupInterval = null;
-    }
   }
 
   private static handleUserStream(receiver: VoiceReceiver, guildId: string, userId: string) {
@@ -86,11 +77,12 @@ export class VoiceReceiverManager {
 
     const guildBuffers = this.buffers.get(guildId)!;
 
-    const bufferList: AudioChunk[] = guildBuffers.get(userId) || [];
+    const bufferList: Denque<AudioChunk> = guildBuffers.get(userId) || new Denque();
     guildBuffers.set(userId, bufferList);
 
     opusStream.on('data', (chunk: Buffer) => {
       bufferList.push({ data: chunk, timestamp: Date.now() });
+      this.cleanup(guildId, userId); // 새 데이터가 들어올 때마다 오래된 버퍼 정리
     });
 
     opusStream.on('end', () => {
@@ -105,30 +97,33 @@ export class VoiceReceiverManager {
     });
   }
 
-  private static cleanup() {
+  private static cleanup(guildId: string, userId: string) {
     const now = Date.now();
 
-    for (const [guildId, userBuffers] of this.buffers) {
-      const config = ServerConfigManager.get(guildId);
-      for (const [userId, bufferList] of userBuffers) {
-        while (bufferList[0] && now - bufferList[0].timestamp > config.bufferRetentionTime)
-          bufferList.shift();
+    const userBuffer = this.getUserBuffer(guildId, userId);
+    if (!userBuffer) return;
+    const config = GuildConfigManager.get(guildId);
+    while (userBuffer.peekFront() && now-userBuffer.peekFront()!.timestamp > config.bufferRetentionTime)
+      userBuffer.shift();
 
-        if (bufferList.length === 0)
-          userBuffers.delete(userId);
-      }
+    if (userBuffer.length === 0)
+      this.buffers.get(guildId)?.delete(userId);
+  }
 
-      if (userBuffers.size === 0) 
-        this.buffers.delete(guildId);
+  static getUserBuffer(guildId: string, userId: string) {
+    return this.getGuildBuffers(guildId)?.get(userId);
+  }
+
+  static getGuildBuffers(guildId: string) {
+    const userBuffers = this.buffers.get(guildId);
+    if (!userBuffers) return undefined;
+
+    // 접근 시 각 유저의 버퍼를 정리하여 반환
+    for (const userId of userBuffers.keys()) {
+      this.cleanup(guildId, userId);
     }
-  }
-
-  static getUserBuffers(guildId: string, userId: string) {
-    return this.getServerBuffers(guildId)?.get(userId);
-  }
-
-  static getServerBuffers(guildId: string) {
-    return this.buffers.get(guildId);
+    
+    return userBuffers;
   }
 
   static clear(guildId: string, userId: string) {

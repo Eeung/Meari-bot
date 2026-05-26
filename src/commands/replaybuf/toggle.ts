@@ -1,6 +1,6 @@
 import { ChatInputCommandInteraction, MessageFlags, SlashCommandSubcommandBuilder, VoiceStateManager } from 'discord.js';
 import type { SubCommand } from '@/commands/CommandTypes.js';
-import { ServerConfigManager } from '@/storage/guildConfig.js';
+import { GuildConfigManager } from '@/storage/guildConfig.js';
 import { AutoReplayState } from '@/audio/autoReplayState.js';
 import { joinIfNeeded } from '@/audio/voiceStateUpdate.js';
 import { getVoiceConnection } from '@discordjs/voice';
@@ -18,7 +18,7 @@ const toggle: SubCommand = {
       return;
     }
 
-    const config = ServerConfigManager.get(guild.id);
+    const config = GuildConfigManager.get(guild.id);
     if(!config.enabledReplayBuffer){
       const channel = config.voiceChannelId;
       if (!channel) {
@@ -28,11 +28,11 @@ const toggle: SubCommand = {
 
       joinIfNeeded(guild);
       AutoReplayState.enable(guild.id);
-      ServerConfigManager.set(guild.id, { enabledReplayBuffer: true });
+      GuildConfigManager.set(guild.id, { enabledReplayBuffer: true });
       await interaction.reply('리플레이 버퍼가 활성화되었습니다.');
     } else{
       AutoReplayState.disable(guild.id);
-      ServerConfigManager.set(guild.id, { enabledReplayBuffer: false });
+      GuildConfigManager.set(guild.id, { enabledReplayBuffer: false });
       await interaction.reply('리플레이 버퍼가 비활성화됐습니다.');
       const connection = getVoiceConnection(guild.id);
       if (!connection) return;

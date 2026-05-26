@@ -1,6 +1,6 @@
 import { MessageFlags, SlashCommandSubcommandBuilder } from 'discord.js';
 import type { SubCommand } from '@/commands/CommandTypes.js';
-import { ServerConfigManager } from '@/storage/guildConfig.js';
+import { GuildConfigManager } from '@/storage/guildConfig.js';
 import { joinIfNeeded } from '@/audio/voiceStateUpdate.js';
 
 const record: SubCommand = {
@@ -22,7 +22,7 @@ const record: SubCommand = {
     }
     const count = interaction.options.getInteger('count', true);
 
-    ServerConfigManager.set(guild.id, {
+    GuildConfigManager.set(guild.id, {
       autoJoinThreshold: count
     });
 

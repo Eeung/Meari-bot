@@ -1,6 +1,6 @@
 import { MessageFlags, SlashCommandSubcommandBuilder } from 'discord.js';
 import type { SubCommand } from '@/commands/CommandTypes.js';
-import { ServerConfigManager } from '@/storage/guildConfig.js';
+import { GuildConfigManager } from '@/storage/guildConfig.js';
 
 const retention: SubCommand = {
   data: new SlashCommandSubcommandBuilder()
@@ -20,7 +20,7 @@ const retention: SubCommand = {
     }
     const seconds = interaction.options.getInteger('seconds', true);
       
-    ServerConfigManager.set(guild.id, {
+    GuildConfigManager.set(guild.id, {
       bufferRetentionTime: seconds * 1000
     });
 

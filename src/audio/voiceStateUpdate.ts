@@ -1,5 +1,5 @@
 import { joinVoiceChannel, getVoiceConnection, VoiceConnection } from '@discordjs/voice';
-import { ServerConfigManager } from '@/storage/guildConfig.js';
+import { GuildConfigManager } from '@/storage/guildConfig.js';
 import { VoiceReceiverManager } from '@/audio/receiver.js';
 import type { Client, Guild, VoiceBasedChannel } from 'discord.js';
 import { AutoReplayState } from './autoReplayState.js';
@@ -17,7 +17,7 @@ export function setupAutoReplay(client: Client) {
     if (!state) return;
 
     const connection = getVoiceConnection(guild.id);
-    const config = ServerConfigManager.get(guild.id);
+    const config = GuildConfigManager.get(guild.id);
     // 설정된 채널이 현재 채널과 다르면 해당 채널로 변경
     if (config.voiceChannelId !== channel.id)
       channel = guild.channels.cache.get(config.voiceChannelId!) as VoiceBasedChannel;
@@ -32,7 +32,7 @@ export function setupAutoReplay(client: Client) {
 }
 
 export function joinIfNeeded(guild: Guild) {
-  const config = ServerConfigManager.get(guild.id);
+  const config = GuildConfigManager.get(guild.id);
 
   const channel = guild.channels.cache.get(config.voiceChannelId ?? "");
   if (!channel || !channel.isVoiceBased()) return;

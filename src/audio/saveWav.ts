@@ -1,5 +1,6 @@
 import type { AudioChunk } from '@/audio/AudioChunk.js';
 import { spawn } from 'child_process';
+import type Denque from 'denque';
 import prism from 'prism-media';
 import { Readable } from 'stream';
 
@@ -9,10 +10,10 @@ const FRAME_SIZE = 960;
 const FRAME_DURATION = 20;
 const PCM_FRAME_BYTES = FRAME_SIZE*CHANNELS*2;
 
-export async function  createWavStream(chunks: AudioChunk[], endTimestamp: number) {
+export async function  createWavStream(chunks: Denque<AudioChunk>, endTimestamp: number) {
   if (!chunks.length) return;
 
-  const sorted = [...chunks].sort((a, b) => a.timestamp - b.timestamp);
+  const sorted = [...chunks.toArray()].sort((a, b) => a.timestamp - b.timestamp);
 
   const decoder = new prism.opus.Decoder({
     rate: SAMPLE_RATE,

@@ -3,7 +3,7 @@ import 'dotenv/config';
 import { Client, GatewayIntentBits, Events } from 'discord.js';
 import { commands } from './commands/index.js';
 import { joinIfNeeded, setupAutoReplay } from './audio/voiceStateUpdate.js';
-import { ServerConfigManager } from './storage/guildConfig.js';
+import { GuildConfigManager } from './storage/guildConfig.js';
 import { AutoReplayState } from './audio/autoReplayState.js';
 import { startCleanupScheduler } from '@/storage/cleanupScheduler.js';
 import '@/server/server.js';
@@ -20,8 +20,8 @@ client.once(Events.ClientReady, (c) => {
   startCleanupScheduler();
   console.log(`READY: ${c.user.tag}`);
 
-  for (const guildId of ServerConfigManager.getAllGuildIds()) {
-    const config = ServerConfigManager.get(guildId);
+  for (const guildId of GuildConfigManager.getAllGuildIds()) {
+    const config = GuildConfigManager.get(guildId);
     if (!config.enabledReplayBuffer) continue;
 
     const guild = client.guilds.cache.get(guildId);

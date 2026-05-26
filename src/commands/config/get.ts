@@ -1,6 +1,6 @@
 import { MessageFlags, SlashCommandSubcommandBuilder } from 'discord.js';
 import type { SubCommand } from '@/commands/CommandTypes.js';
-import { ServerConfigManager } from '@/storage/guildConfig.js';
+import { GuildConfigManager } from '@/storage/guildConfig.js';
 
 const get: SubCommand = {
   data: new SlashCommandSubcommandBuilder()
@@ -13,7 +13,7 @@ const get: SubCommand = {
       await interaction.reply({content: 'DM에서는 사용할 수 없는 명령어입니다.', flags: MessageFlags.Ephemeral});
       return;
     }
-    const config = ServerConfigManager.get(guild.id);
+    const config = GuildConfigManager.get(guild.id);
     
     await interaction.reply({
       content:
