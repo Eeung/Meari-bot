@@ -100,7 +100,7 @@ export class VoiceReceiverManager {
   private static cleanup(guildId: string, userId: string) {
     const now = Date.now();
 
-    const userBuffer = this.getUserBuffer(guildId, userId);
+    const userBuffer = this.buffers.get(guildId)?.get(userId);
     if (!userBuffer) return;
     const config = GuildConfigManager.get(guildId);
     while (userBuffer.peekFront() && now-userBuffer.peekFront()!.timestamp > config.bufferRetentionTime)
