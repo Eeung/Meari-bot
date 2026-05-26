@@ -1,0 +1,14 @@
+{
+  "1026520541257023488": {
+    "voiceChannelId": "1502373992600830142",
+    "bufferRetentionTime": 10000,
+    "autoJoinThreshold": 1,
+    "enabledReplayBuffer": true
+  },
+  "951666879536185466": {
+    "voiceChannelId": "1465655356976791655",
+    "bufferRetentionTime": 180000,
+    "autoJoinThreshold": 1,
+    "enabledReplayBuffer": true
+  }
+}
