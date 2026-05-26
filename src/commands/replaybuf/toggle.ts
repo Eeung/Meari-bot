@@ -2,7 +2,7 @@ import { ChatInputCommandInteraction, MessageFlags, SlashCommandSubcommandBuilde
 import type { SubCommand } from '@/commands/CommandTypes.js';
 import { ServerConfigManager } from '@/storage/guildConfig.js';
 import { AutoReplayState } from '@/audio/autoReplayState.js';
-import { checkAndJoinIfNeeded } from '@/audio/voiceStateUpdate.js';
+import { joinIfNeeded } from '@/audio/voiceStateUpdate.js';
 import { getVoiceConnection } from '@discordjs/voice';
 import { VoiceReceiverManager } from '@/audio/receiver.js';
 
@@ -26,7 +26,7 @@ const toggle: SubCommand = {
         return;
       }
 
-      checkAndJoinIfNeeded(guild);
+      joinIfNeeded(guild);
       AutoReplayState.enable(guild.id);
       ServerConfigManager.set(guild.id, { enabledReplayBuffer: true });
       await interaction.reply('리플레이 버퍼가 활성화되었습니다.');

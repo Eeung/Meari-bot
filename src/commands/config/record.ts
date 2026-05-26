@@ -1,7 +1,7 @@
 import { ChannelType, MessageFlags, SlashCommandSubcommandBuilder } from 'discord.js';
 import type { SubCommand } from '@/commands/CommandTypes.js';
 import { ServerConfigManager } from '@/storage/guildConfig.js';
-import { checkAndJoinIfNeeded } from '@/audio/voiceStateUpdate.js';
+import { joinIfNeeded } from '@/audio/voiceStateUpdate.js';
 
 const record: SubCommand = {
   data: new SlashCommandSubcommandBuilder()
@@ -27,7 +27,7 @@ const record: SubCommand = {
     });
 
     await interaction.reply(`녹음 음성 채널이 ${channel.name}(으)로 설정되었습니다.`);
-    checkAndJoinIfNeeded(guild);
+    joinIfNeeded(guild);
   }
 };
 

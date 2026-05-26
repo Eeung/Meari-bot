@@ -4,15 +4,17 @@ import type { Guild } from 'discord.js';
 import { ServerConfigManager } from '@/storage/guildConfig.js';
 
 type UserBuffers = Map<string, AudioChunk[]>;
-type GuildBuffers = Map<string, UserBuffers>;
-type ActiveStreams = Map<string, Set<string>>;
 
 export class VoiceReceiverManager {
-  private static buffers: GuildBuffers = new Map();
-  private static activeStreams: ActiveStreams  = new Map();
+  // 서버ID -> 유저ID -> 오디오 청크 배열
+  private static buffers: Map<string, UserBuffers> = new Map();
+  // 서버ID -> 유저ID 집합: 현재 스트림이 활성화된 유저
+  private static activeStreams: Map<string, Set<string>>  = new Map();
+  // 서버ID -> 유저별 스트림 집합: 현재 활성화된 유저의 스트림
+  private static streamMap: Map<string, Set<AudioReceiveStream>>  = new Map();
+  // 서버ID -> 이벤트 핸들러: speaking 이벤트 리스너 저장
+  private static speakingListeners: Map<string, (...args: any[]) => void> = new Map();
   private static cleanupInterval: NodeJS.Timeout | null = null;
-  private static speakingListeners = new Map<string, (...args: any[]) => void>();
-  private static streamMap = new Map<string, Set<AudioReceiveStream>>();
 
   static async startListening(receiver: VoiceReceiver, guild: Guild) {
     if (this.speakingListeners.has(guild.id)) return;

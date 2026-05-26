@@ -10,19 +10,17 @@ const guildMutex = new Map<string, Mutex>();
 export function setupAutoReplay(client: Client) {
   client.on('voiceStateUpdate', async (oldState, newState) => {
     let channel = newState.channel ?? oldState.channel!;
-    // console.log('from', oldState.channel?.id, 'to', newState.channel?.id);
-
     const guild = channel.guild;
 
+    // 리플레이 버퍼 활성화 여부 확인
     const state = AutoReplayState.isEnabled(guild.id);
     if (!state) return;
 
     const connection = getVoiceConnection(guild.id);
     const config = ServerConfigManager.get(guild.id);
-    // console.log('destination: ', config.voiceChannelId, 'current: ', channel.id);
-    if (config.voiceChannelId !== channel.id) {
+    // 설정된 채널이 현재 채널과 다르면 해당 채널로 변경
+    if (config.voiceChannelId !== channel.id)
       channel = guild.channels.cache.get(config.voiceChannelId!) as VoiceBasedChannel;
-    }
 
     // 사람 수 계산
     const humanCount = channel.members.filter(m => !m.user.bot).size;
@@ -33,7 +31,7 @@ export function setupAutoReplay(client: Client) {
   });
 }
 
-export function checkAndJoinIfNeeded(guild: Guild) {
+export function joinIfNeeded(guild: Guild) {
   const config = ServerConfigManager.get(guild.id);
 
   const channel = guild.channels.cache.get(config.voiceChannelId ?? "");
@@ -48,10 +46,8 @@ export function checkAndJoinIfNeeded(guild: Guild) {
       connection = undefined;
     }
 
-  if (humanCount >= config.autoJoinThreshold && !connection){
-    // console.log('joining channel:', channel.id);
+  if (humanCount >= config.autoJoinThreshold && !connection)
     joinChannel(guild, channel);
-  }
 }
 
 async function joinChannel(guild: Guild, channel: VoiceBasedChannel) {

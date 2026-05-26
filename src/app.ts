@@ -2,7 +2,7 @@ import 'dotenv/config';
 
 import { Client, GatewayIntentBits, Events } from 'discord.js';
 import { commands } from './commands/index.js';
-import { checkAndJoinIfNeeded, setupAutoReplay } from './audio/voiceStateUpdate.js';
+import { joinIfNeeded, setupAutoReplay } from './audio/voiceStateUpdate.js';
 import { ServerConfigManager } from './storage/guildConfig.js';
 import { AutoReplayState } from './audio/autoReplayState.js';
 import { startCleanupScheduler } from '@/storage/cleanupScheduler.js';
@@ -27,7 +27,7 @@ client.once(Events.ClientReady, (c) => {
     const guild = client.guilds.cache.get(guildId);
     if(!guild) return;
     AutoReplayState.enable(guildId);
-    checkAndJoinIfNeeded(guild);
+    joinIfNeeded(guild);
   }
 });
 

@@ -20,7 +20,6 @@ const save: SubCommand = {
       await interaction.reply({content: 'DM에서는 사용할 수 없는 명령어입니다.', flags: MessageFlags.Ephemeral});
       return;
     }
-
     const guildChunks = VoiceReceiverManager.getServerBuffers(guild.id);
     if (!guildChunks || guildChunks.size === 0) {
       await interaction.reply({content: '저장할 음성이 없습니다.', flags: MessageFlags.Ephemeral});

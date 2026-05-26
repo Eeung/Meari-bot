@@ -15,12 +15,10 @@ export function cleanupOldFiles(options?: {
   if (!fs.existsSync(RECORDINGS_DIR)) return;
 
   const now = Date.now();
-
   const files = fs.readdirSync(RECORDINGS_DIR);
 
   for (const file of files) {
     const fullPath = path.join(RECORDINGS_DIR, file);
-
     const stat = fs.statSync(fullPath);
 
     // 폴더/파일 구분 없이 안전 처리

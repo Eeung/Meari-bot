@@ -1,7 +1,7 @@
 import { MessageFlags, SlashCommandSubcommandBuilder } from 'discord.js';
 import type { SubCommand } from '@/commands/CommandTypes.js';
 import { ServerConfigManager } from '@/storage/guildConfig.js';
-import { checkAndJoinIfNeeded } from '@/audio/voiceStateUpdate.js';
+import { joinIfNeeded } from '@/audio/voiceStateUpdate.js';
 
 const record: SubCommand = {
   data: new SlashCommandSubcommandBuilder()
@@ -27,7 +27,7 @@ const record: SubCommand = {
     });
 
     await interaction.reply(`기준 인원 수가 ${count}명으로 설정되었습니다.`);
-    checkAndJoinIfNeeded(guild)
+    joinIfNeeded(guild)
   }
 };
 
