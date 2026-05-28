@@ -8,7 +8,5 @@ app.use('/download', downloadRouter );
 const PORT = 3000;
 
 app.listen(PORT, () => {
-  console.log(
-    `File server running on ${PORT}`
-  );
+  console.log(`File server running on ${PORT}`);
 });

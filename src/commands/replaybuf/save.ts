@@ -6,6 +6,7 @@ import path from 'path';
 import { formatTimestamp } from '@/utils/dateFormat.js';
 import { createZipStream } from '@/storage/createZip.js';
 import { createSignedUrl } from '@/storage/signedUrl.js';
+import printLog from '@/utils/printLog.js';
 
 const saving = new Set<string>();
 
@@ -34,11 +35,11 @@ const save: SubCommand = {
     try{
       await interaction.deferReply();
       const ts = Date.now();
-      const fileName = `${guild.id}_${formatTimestamp(ts)}.zip`;
+      const fileName = `${guild.name.replace(/[\\/:*?"<>|]/g, '_')} ${formatTimestamp(ts)}.zip`;
 
       const { zipfile, done } = createZipStream(path.join(process.cwd(), 'recordings', fileName));
 
-      console.log('저장 시작');
+      printLog(`saving started: ${guild.id}`);
       const tasks = [...guildChunks.entries()].map(async ([userId, chunks]) => {
         const member = await guild.members.fetch(userId);
         const username = member.user.username.replace(/[\\/:*?"<>|]/g, '_');
@@ -52,14 +53,14 @@ const save: SubCommand = {
       zipfile.end();
       await done;
 
-      const token = createSignedUrl(encodeURIComponent(fileName));
+      const token = createSignedUrl(fileName);
       const url = `${process.env.BASE_DOMAIN}/${token}`;
 
       await interaction.editReply(`다운로드 링크: <${url}>`);
 
       for (const result of results) 
         if (result.status === 'rejected') 
-          console.error(result.reason);
+          printLog(`error occurred while saving buffer in ${guild.id}: ${result.reason}\n\n`);
     } finally {
       saving.delete(guild.id);
     }

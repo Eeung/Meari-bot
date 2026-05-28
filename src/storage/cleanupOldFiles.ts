@@ -1,3 +1,4 @@
+import printLog from '@/utils/printLog.js';
 import fs from 'fs';
 import path from 'path';
 
@@ -27,7 +28,7 @@ export function cleanupOldFiles(options?: {
     const age = now - stat.mtimeMs;
 
     if (force || age > SEVEN_DAYS) {
-      console.log(`[CLEANUP] deleting: ${file}`);
+      printLog(`deleting file: ${file}`);
       
       if (dryRun) continue;
       fs.unlinkSync(fullPath);

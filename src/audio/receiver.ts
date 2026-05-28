@@ -4,36 +4,36 @@ import type { Guild } from 'discord.js';
 import { GuildConfigManager } from '@/storage/guildConfig.js';
 import { GlobalVar } from '@/globalVar.js';
 import Denque from 'denque';
+import { formatTimestamp } from '@/utils/dateFormat.js';
+import printLog from '@/utils/printLog.js';
 
 type UserBuffers = Map<string, Denque<AudioChunk>>;
+type UserStreams = Map<string, AudioReceiveStream | null>;
 
 export class VoiceReceiverManager {
   // 서버ID -> 유저ID -> 오디오 청크 배열
   private static buffers: Map<string, UserBuffers> = new Map();
-  // 서버ID -> 유저ID 집합: 현재 스트림이 활성화된 유저
-  private static activeStreams: Map<string, Set<string>>  = new Map();
-  // 서버ID -> 유저별 스트림 집합: 현재 활성화된 유저의 스트림
-  private static streamMap: Map<string, Set<AudioReceiveStream>>  = new Map();
+  // 서버ID -> 유저ID -> 활성화 된 스트림
+  private static streamMap: Map<string, UserStreams>  = new Map();
   // 서버ID -> 이벤트 핸들러: speaking 이벤트 리스너 저장
   private static speakingListeners: Map<string, (...args: any[]) => void> = new Map();
 
   static async startListening(receiver: VoiceReceiver, guild: Guild) {
     if (this.speakingListeners.has(guild.id)) return;
     const handler = (userId: string) => {
-      if(!this.activeStreams.has(guild.id))
-        this.activeStreams.set(guild.id, new Set());
-
-      const guildStreams = this.activeStreams.get(guild.id)!;
+      if (!this.streamMap.has(guild.id))
+        this.streamMap.set(guild.id, new Map());
+      const guildStreams = this.streamMap.get(guild.id)!;
 
       if(guildStreams.has(userId)) return;
-      guildStreams.add(userId);
+      guildStreams.set(userId, null);
 
       this.handleUserStream(receiver, guild.id, userId);
     }
     this.speakingListeners.set(guild.id, handler);
 
     receiver.speaking.on('start', handler);
-    console.log("말 시작");
+    printLog(`listening started: ${guild.id}`);
 
     const me = await GlobalVar.getMe(guild);
     await me.setNickname('🟡 메아리');
@@ -49,14 +49,17 @@ export class VoiceReceiverManager {
 
     const streams = this.streamMap.get(guild.id);
     if (streams)
-      for (const stream of streams) {
-        stream.destroy();
+      for (const [userId, stream] of streams) {
+        streams.delete(userId);
+
+        if(!stream) continue;
         stream.removeAllListeners();
-        streams.delete(stream);
+        stream.destroy();
       }
 
+    printLog(`listening stopped: ${guild.id}`);
+
     this.streamMap.delete(guild.id);
-    this.activeStreams.delete(guild.id);
     this.buffers.delete(guild.id);
   }
 
@@ -68,14 +71,13 @@ export class VoiceReceiverManager {
       }
     });
 
-    if (!this.streamMap.has(guildId))
-      this.streamMap.set(guildId, new Set());
-    this.streamMap.get(guildId)!.add(opusStream);
+    const guildStreams = this.streamMap.get(guildId)!;
+    guildStreams.set(userId, opusStream);
 
     if (!this.buffers.has(guildId)) 
       this.buffers.set(guildId, new Map());
-
     const guildBuffers = this.buffers.get(guildId)!;
+    
 
     const bufferList: Denque<AudioChunk> = guildBuffers.get(userId) || new Denque();
     guildBuffers.set(userId, bufferList);
@@ -86,14 +88,21 @@ export class VoiceReceiverManager {
     });
 
     opusStream.on('end', () => {
-      console.log(`stream ended: ${userId}`);
-
-      const guildStreams = this.activeStreams.get(guildId);
-      if (!guildStreams) return;
+      // printLog(`stream ended: ${userId}`);
       guildStreams.delete(userId);
-
       if (guildStreams.size === 0)
-        this.activeStreams.delete(guildId);
+        this.streamMap.delete(guildId);
+    });
+
+    opusStream.on('error', (error) => {
+      console.error(`[${formatTimestamp(Date.now())}] stream error: ${userId} in ${guildId}\n`, error);
+      
+      opusStream.removeAllListeners();
+      opusStream.destroy();
+
+      guildStreams.delete(userId);
+      if (guildStreams.size === 0)
+        this.streamMap.delete(guildId);
     });
   }
 

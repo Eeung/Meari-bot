@@ -63,14 +63,14 @@ async function joinChannel(guild: Guild, channel: VoiceBasedChannel) {
       selfDeaf: false
     });
 
-    VoiceReceiverManager.startListening(newConnection.receiver, channel.guild);
+    await VoiceReceiverManager.startListening(newConnection.receiver, channel.guild);
   });
 }
 
 async function leaveChannel(connection: VoiceConnection, guild: Guild) {
   const mutex = getMutex(guild.id);
   await mutex.runExclusive(async () => {
-    VoiceReceiverManager.stopListening(connection.receiver, guild);
+    await VoiceReceiverManager.stopListening(connection.receiver, guild);
     connection.destroy();
   });
 }
