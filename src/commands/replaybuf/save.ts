@@ -35,7 +35,7 @@ const save: SubCommand = {
     try{
       await interaction.deferReply();
       const ts = Date.now();
-      const fileName = `${guild.name.replace(/[\\/:*?"<>|]/g, '_')} ${formatTimestamp(ts)}.zip`;
+      const fileName = `${formatTimestamp(ts)} ${guild.name.replace(/[\\/:*?"<>|]/g, '_')}.zip`;
 
       const { zipfile, done } = createZipStream(path.join(process.cwd(), 'recordings', fileName));
 
@@ -58,6 +58,7 @@ const save: SubCommand = {
 
       await interaction.editReply(`다운로드 링크: <${url}>`);
 
+      printLog(`saving finished: ${guild.id}`);
       for (const result of results) 
         if (result.status === 'rejected') 
           printLog(`error occurred while saving buffer in ${guild.id}: ${result.reason}\n\n`);

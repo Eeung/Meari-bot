@@ -1,50 +1,24 @@
 import type { AudioChunk } from '@/audio/AudioChunk.js';
-import { spawn } from 'child_process';
+import { Worker } from 'worker_threads';
 import type Denque from 'denque';
-import prism from 'prism-media';
 import { Readable } from 'stream';
+import path from 'path';
 
 const SAMPLE_RATE = 48000;
 const CHANNELS = 2;
 const FRAME_SIZE = 960;
 const FRAME_DURATION = 20;
 const PCM_FRAME_BYTES = FRAME_SIZE*CHANNELS*2;
+const BIT_DEPTH = 16;
+
+const SILENCE_FRAME = Buffer.alloc(PCM_FRAME_BYTES);
 
 export async function  createWavStream(chunks: Denque<AudioChunk>, endTimestamp: number) {
   if (!chunks.length) return;
 
   const sorted = [...chunks.toArray()].sort((a, b) => a.timestamp - b.timestamp);
 
-  const decoder = new prism.opus.Decoder({
-    rate: SAMPLE_RATE,
-    channels: CHANNELS,
-    frameSize: FRAME_SIZE
-  });
-
-  const decodedFrames: Buffer[] = [];
-
-  let pcmCache = Buffer.alloc(0);
-
-  decoder.on('data', (pcm: Buffer) => {
-    pcmCache = Buffer.concat([pcmCache, pcm]);
-
-    while (pcmCache.length >= PCM_FRAME_BYTES) {
-      decodedFrames.push(pcmCache.subarray(0, PCM_FRAME_BYTES));
-      pcmCache = pcmCache.subarray(PCM_FRAME_BYTES);
-    }
-  });
-
-  const decodeFinished = new Promise<void>((resolve, reject) => {
-    decoder.on('end', () => resolve());
-    decoder.on('error', (e) => reject(e));
-  });
-
-  for (const chunk of sorted)
-    decoder.write(chunk.data);
-
-  decoder.end();
-
-  await decodeFinished;
+  const decodedFrames: Buffer[] = await decodeWithWorker(chunks);
 
   const timelineFrames: Buffer[] = [];
 
@@ -54,20 +28,16 @@ export async function  createWavStream(chunks: Denque<AudioChunk>, endTimestamp:
   let currentFrame = 0;
 
   for (const chunk of sorted) {
-    const targetFrame = Math.round(
-      (chunk.timestamp - startTime) / FRAME_DURATION
-    );
-
+    const targetFrame = Math.round( (chunk.timestamp-startTime)/FRAME_DURATION );
     while (currentFrame < targetFrame) {
-      timelineFrames.push(createSilenceFrame());
+      timelineFrames.push(SILENCE_FRAME);
       currentFrame++;
     }
 
-    if (decodedIndex < decodedFrames.length) {
-      timelineFrames.push(decodedFrames[decodedIndex]!);
-      decodedIndex++;
-      currentFrame++;
-    }
+    if (decodedIndex >= decodedFrames.length) continue;
+    timelineFrames.push(decodedFrames[decodedIndex]!);
+    decodedIndex++;
+    currentFrame++;
   }
 
   while (decodedIndex < decodedFrames.length) {
@@ -78,31 +48,60 @@ export async function  createWavStream(chunks: Denque<AudioChunk>, endTimestamp:
 
   const finalTargetFrame = Math.round( (endTimestamp-startTime)/FRAME_DURATION );
   while (currentFrame < finalTargetFrame) {
-    timelineFrames.push(createSilenceFrame());
+    timelineFrames.push(SILENCE_FRAME);
     currentFrame++;
   }
 
-  const ffmpeg = spawn('ffmpeg', [
-    '-f', 's16le',
-    '-ar', '48000',
-    '-ac', '2',
-    '-i', 'pipe:0',
-    '-f', 'wav',
-    'pipe:1'
+  const dataSize = timelineFrames.length * PCM_FRAME_BYTES;
+
+  const wavHeader = createWavHeader(dataSize);
+
+  return Readable.from([
+    wavHeader,
+    ...timelineFrames
   ]);
-
-  const input = new Readable({ read() { } });
-
-  for (const frame of timelineFrames) {
-    input.push(frame);
-  }
-
-  input.push(null);
-  input.pipe(ffmpeg.stdin);
-
-  return ffmpeg.stdout;
 }
 
-function createSilenceFrame() {
-  return Buffer.alloc(PCM_FRAME_BYTES);
+function decodeWithWorker(chunks: Denque<AudioChunk>): Promise<Buffer[]> {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(path.resolve('./src/audio/decodeWorker.js'));
+
+    worker.postMessage(chunks.toArray());
+
+    worker.on('message', (decoded) => {
+      resolve(decoded);
+      worker.terminate();
+    });
+
+    worker.on('error', reject);
+  });
+}
+
+function createWavHeader(dataSize: number) {
+  const header = Buffer.alloc(44);
+
+  header.write('RIFF', 0);
+  header.writeUInt32LE(36 + dataSize, 4);
+
+  header.write('WAVE', 8);
+
+  header.write('fmt ', 12);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20);
+
+  header.writeUInt16LE(CHANNELS, 22);
+  header.writeUInt32LE(SAMPLE_RATE, 24);
+
+  const byteRate = SAMPLE_RATE * CHANNELS * BIT_DEPTH / 8;
+  header.writeUInt32LE(byteRate, 28);
+
+  const blockAlign = CHANNELS * BIT_DEPTH / 8;
+  header.writeUInt16LE(blockAlign, 32);
+
+  header.writeUInt16LE(BIT_DEPTH, 34);
+
+  header.write('data', 36);
+  header.writeUInt32LE(dataSize, 40);
+
+  return header;
 }

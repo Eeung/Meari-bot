@@ -77,7 +77,6 @@ export class VoiceReceiverManager {
     if (!this.buffers.has(guildId)) 
       this.buffers.set(guildId, new Map());
     const guildBuffers = this.buffers.get(guildId)!;
-    
 
     const bufferList: Denque<AudioChunk> = guildBuffers.get(userId) || new Denque();
     guildBuffers.set(userId, bufferList);
