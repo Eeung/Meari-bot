@@ -5,7 +5,7 @@ import { GuildConfigManager } from '@/storage/guildConfig.js';
 import { GlobalVar } from '@/globalVar.js';
 import Denque from 'denque';
 import { formatTimestamp } from '@/utils/dateFormat.js';
-import printLog from '@/utils/printLog.js';
+import printLog from '@/storage/printLog.js';
 
 type UserBuffers = Map<string, Denque<AudioChunk>>;
 type UserStreams = Map<string, AudioReceiveStream | null>;
@@ -33,7 +33,7 @@ export class VoiceReceiverManager {
     this.speakingListeners.set(guild.id, handler);
 
     receiver.speaking.on('start', handler);
-    printLog(`listening started: ${guild.id}`);
+    printLog("Listening started",`${guild.name}(${guild.id})`);
 
     const me = await GlobalVar.getMe(guild);
     await me.setNickname('🟡 메아리');
@@ -57,7 +57,7 @@ export class VoiceReceiverManager {
         stream.destroy();
       }
 
-    printLog(`listening stopped: ${guild.id}`);
+    printLog("Listening stopped", `${guild.name}(${guild.id})`);
 
     this.streamMap.delete(guild.id);
     this.buffers.delete(guild.id);
@@ -87,7 +87,7 @@ export class VoiceReceiverManager {
     });
 
     opusStream.on('end', () => {
-      // printLog(`stream ended: ${userId}`);
+      // printLog("Stream ended", userId);
       guildStreams.delete(userId);
       if (guildStreams.size === 0)
         this.streamMap.delete(guildId);

@@ -1,7 +1,7 @@
 import express from 'express';
 import fs from 'fs';
 import path from 'path';
-import { verifySignedUrl } from '@/storage/signedUrl.js';
+import { verifySignedUrl } from '@/server/signedUrl.js';
 
 export const downloadRouter = express.Router();
 

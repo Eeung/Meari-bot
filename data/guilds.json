@@ -7,7 +7,7 @@
   },
   "951666879536185466": {
     "voiceChannelId": "1465655356976791655",
-    "bufferRetentionTime": 180000,
+    "bufferRetentionTime": 1800000000,
     "autoJoinThreshold": 1,
     "enabledReplayBuffer": true
   }

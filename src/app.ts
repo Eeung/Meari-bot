@@ -7,8 +7,7 @@ import { GuildConfigManager } from './storage/guildConfig.js';
 import { AutoReplayState } from './audio/autoReplayState.js';
 import { startCleanupScheduler } from '@/storage/cleanupScheduler.js';
 import '@/server/server.js';
-import { formatTimestamp } from './utils/dateFormat.js';
-import printLog from './utils/printLog.js';
+import printLog from './storage/printLog.js';
 
 const client = new Client({
   intents: [
@@ -19,8 +18,8 @@ const client = new Client({
 
 client.once(Events.ClientReady, (c) => {
   setupAutoReplay(client);
-  startCleanupScheduler();
-  printLog(`READY: ${c.user.tag}`);
+  startCleanupScheduler(client);
+  printLog("READY", c.user.tag);
 
   for (const guildId of GuildConfigManager.getAllGuildIds()) {
     const config = GuildConfigManager.get(guildId);
@@ -36,7 +35,7 @@ client.once(Events.ClientReady, (c) => {
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
-  printLog(`command received: ${interaction.commandName} from ${interaction.guild?.name}`);
+  printLog("Command received", `${interaction.commandName} from ${interaction.guild?.name}(${interaction.guild?.id})`);
 
   const command = commands[interaction.commandName];
 

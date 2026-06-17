@@ -5,8 +5,10 @@ import { VoiceReceiverManager } from '@/audio/receiver.js';
 import path from 'path';
 import { formatTimestamp } from '@/utils/dateFormat.js';
 import { createZipStream } from '@/storage/createZip.js';
-import { createSignedUrl } from '@/storage/signedUrl.js';
-import printLog from '@/utils/printLog.js';
+import { createSignedUrl } from '@/server/signedUrl.js';
+import printLog from '@/storage/printLog.js';
+import { createDownloadMessage } from '@/utils/ImbededUrl.js';
+import { MessageDataStore } from '@/storage/messageData.js';
 
 const saving = new Set<string>();
 
@@ -39,14 +41,22 @@ const save: SubCommand = {
 
       const { zipfile, done } = createZipStream(path.join(process.cwd(), 'recordings', fileName));
 
-      printLog(`saving started: ${guild.id}`);
+      const members: string[] = [];      
+      printLog("Saving started", `${guild.name}(${guild.id})`);
       const tasks = [...guildChunks.entries()].map(async ([userId, chunks]) => {
-        const member = await guild.members.fetch(userId);
-        const username = member.user.username.replace(/[\\/:*?"<>|]/g, '_');
+        try{
+          const member = await guild.members.fetch(userId);
+          const username = member.user.username.replace(/[\\/:*?"<>|]/g, '_');
+          members.push(member.displayName);
 
-        const wavStream = await createWavStream(chunks, ts);
+          const wavStream = await createWavStream(chunks, ts);
 
-        zipfile.addReadStream(wavStream!, `${username}.wav`);
+          zipfile.addReadStream(wavStream!, `${username}.wav`);
+        } catch(err){
+          if (err instanceof Error)
+            err.message = `{From ${userId}} ${err.message}`;
+          throw err;
+        }
       });
       const results = await Promise.allSettled(tasks);
 
@@ -56,12 +66,18 @@ const save: SubCommand = {
       const token = createSignedUrl(fileName);
       const url = `${process.env.BASE_DOMAIN}/${token}`;
 
-      await interaction.editReply(`다운로드 링크: <${url}>`);
+      const message = await interaction.editReply(createDownloadMessage(fileName, url, members));
 
-      printLog(`saving finished: ${guild.id}`);
+      MessageDataStore.set(message.id, {
+        channelId: message.channelId,
+        fileName,
+        createdAt: ts,
+      })
+
+      printLog("Saving finished", `${guild.name}(${guild.id})`);
       for (const result of results) 
         if (result.status === 'rejected') 
-          printLog(`error occurred while saving buffer in ${guild.id}: ${result.reason}\n\n`);
+          printLog(`ERROR in ${guild.name}(${guild.id})`, `${result.reason}\n`);
     } finally {
       saving.delete(guild.id);
     }
