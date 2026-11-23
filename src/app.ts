@@ -7,7 +7,7 @@ import { GuildConfigManager } from './storage/guildConfig.js';
 import { AutoReplayState } from './audio/autoReplayState.js';
 import { startCleanupScheduler } from '@/storage/cleanupScheduler.js';
 import '@/server/server.js';
-import printLog from './storage/printLog.js';
+import printLog from './utils/printLog.js';
 
 const client = new Client({
   intents: [

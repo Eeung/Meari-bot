@@ -1,6 +1,6 @@
 import cron from 'node-cron';
 import { cleanupOldFiles } from './cleanupOldFiles.js';
-import printLog from '@/storage/printLog.js';
+import printLog from '@/utils/printLog.js';
 import type { Client } from 'discord.js';
 
 // 매일 03:00 실행

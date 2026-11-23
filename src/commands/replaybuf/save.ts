@@ -1,12 +1,12 @@
 import { MessageFlags, SlashCommandSubcommandBuilder } from 'discord.js';
 import type { SubCommand } from '@/commands/CommandTypes.js';
-import { createWavStream as createWavStream } from '@/audio/saveWav.js';
+import { createWavStream } from '@/audio/saveWav.js';
 import { VoiceReceiverManager } from '@/audio/receiver.js';
 import path from 'path';
 import { formatTimestamp } from '@/utils/dateFormat.js';
 import { createZipStream } from '@/storage/createZip.js';
 import { createSignedUrl } from '@/server/signedUrl.js';
-import printLog from '@/storage/printLog.js';
+import printLog from '@/utils/printLog.js';
 import { createDownloadMessage } from '@/utils/ImbededUrl.js';
 import { MessageDataStore } from '@/storage/messageData.js';
 

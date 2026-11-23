@@ -1,4 +1,4 @@
-import { getDate, getTime } from "../utils/dateFormat.js";
+import { getDate, getTime } from "./dateFormat.js";
 import fs from 'fs';
 import path from 'path';
 

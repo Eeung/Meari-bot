@@ -5,7 +5,7 @@ import { GuildConfigManager } from '@/storage/guildConfig.js';
 import { GlobalVar } from '@/globalVar.js';
 import Denque from 'denque';
 import { formatTimestamp } from '@/utils/dateFormat.js';
-import printLog from '@/storage/printLog.js';
+import printLog from '@/utils/printLog.js';
 
 type UserBuffers = Map<string, Denque<AudioChunk>>;
 type UserStreams = Map<string, AudioReceiveStream | null>;

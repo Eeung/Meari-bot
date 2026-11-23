@@ -1,4 +1,4 @@
-import printLog from '@/storage/printLog.js';
+import printLog from '@/utils/printLog.js';
 import fs from 'fs';
 import path from 'path';
 import { MessageDataStore, type MessageRecord } from './messageData.js';
